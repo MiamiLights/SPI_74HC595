@@ -98,6 +98,13 @@ void spi1_transmit(uint8_t *data, uint32_t size){
 
 void spi1_receive(uint8_t *data, uint32_t size){
 
+	/*
+	 * Before receiving data we must send a dummy byte to the device. When the device receives the dummy byte
+	 * it transmits one byte of data. This will set RXNE flag to 1 (not empty). This signals the STM32 that
+	 * there is some data in the Data Register ready to be read.
+	 * For last we can copy the data from DR into our buffer. This clears the RXNE bit.
+	 */
+
 	while(size){
 		// we wait for BSY bit to Reset, this indicates that SPI is not busy in communication
 		while(!(SPI1 -> SR & SR_TXE)){};
