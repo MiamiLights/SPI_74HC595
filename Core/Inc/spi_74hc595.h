@@ -12,6 +12,7 @@ void cs_enable(void);
 void cs_disable(void);
 void hc595_write_byte(uint8_t data);
 void simple_delay(volatile uint32_t count);
+uint8_t hc595_loopback_check(uint8_t test_pattern);
 
 
 

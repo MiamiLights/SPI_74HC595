@@ -16,19 +16,26 @@
 #define LATCH_LOW() GPIOA -> BSRR = (1U<<(9+16)) // Reset (Low) PA9
 #define LATCH_HIGH() GPIOA -> BSRR = (1U<<9) // Set (High) PA9
 
+
 void spi_gpio_init(){
 
 	RCC -> APB2ENR |= GPIOAEN;
 
-	// PA5, PA6, PA7 in alternate function
+	// PA5, PA7 in alternate function
 	GPIOA -> CRL &= ~(0xFU<<20);
 	GPIOA -> CRL |= (0xBU<<20);
 
-	GPIOA -> CRL &= ~(0xFU<<24);
-	GPIOA -> CRL |= (0x4U<<24);
-
 	GPIOA -> CRL &= ~(0xFU<<28);
 	GPIOA -> CRL |= (0xBU<<28);
+
+
+	// We set PA6 in Input Mode Pull-down
+	GPIOA -> CRL &= ~(0xFU<<24);
+	GPIOA -> CRL |= (0x8U<<24);
+
+	//To enable pull-up we use BRR to reset ODR bit corresponding to PA6
+	GPIOA -> BSRR = (1U<<22);
+
 
 	// Set PA9 as SS
 	GPIOA -> CRH &= ~(0xFU<<4);
@@ -110,7 +117,7 @@ void spi1_receive(uint8_t *data, uint32_t size){
 		while(!(SPI1 -> SR & SR_TXE)){};
 		SPI1 -> DR = 0; //send dummy data
 		while(!(SPI1 -> SR & SR_RXNE)){} //wait for data to arrive
-		*data++ = (SPI1 -> DR);
+		*data++ = (uint8_t)(SPI1 -> DR);
 		size--;
 	}
 }
@@ -137,4 +144,23 @@ void SystemClock_Config(void){
 
 void simple_delay(volatile uint32_t count){
 	while(count --) __NOP();
+}
+
+
+// Checks if the 74hc595 shift register receives and sends correct data
+uint8_t hc595_loopback_check(uint8_t test_pattern){
+	uint8_t received_value = 0;
+	cs_enable();
+	spi1_transmit(&test_pattern, 1);
+	cs_disable();
+
+	cs_enable();
+	spi1_receive(&received_value, 1);
+	cs_disable();
+
+	if(received_value == test_pattern){
+		return 1;
+	} else{
+		return 0;
+	}
 }
